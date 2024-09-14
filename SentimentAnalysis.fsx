@@ -1,4 +1,4 @@
-#r "nuget: Microsoft.ML"
+#r "nuget: Microsoft.ML, 1.3.1"
 
 open Microsoft.ML
 open Microsoft.ML.Data
@@ -10,10 +10,13 @@ type SentimentIssue = {
     [<LoadColumn(2)>] LoggedIn: bool
 }
 
-// Load dataset
 let mlContext = MLContext()
 let dataPath = "wikipedia-detox-250-line-data.tsv"
 let testPath = "wikipedia-detox-250-line-test.tsv"
 let dataView = mlContext.Data.LoadFromTextFile<SentimentIssue>(dataPath, hasHeader=true)
 let testDataView = mlContext.Data.LoadFromTextFile<SentimentIssue>(testPath, hasHeader=true)
-let trainTestSplit = mlContext.Data.TrainTestSplit(dataView, testFraction = 0.2)
+let dataProcessPipeline = mlContext.Transforms.Text.FeaturizeText("Sentiment", "SentimentText")
+
+let trainer = mlContext.BinaryClassification.Trainers.SdcaLogisticRegression(labelColumnName = "Sentiment", featureColumnName = "SentimentText")
+let trainingPipeline = dataProcessPipeline.Append(trainer)
+let trainedModel = trainingPipeline.Fit(dataView)
